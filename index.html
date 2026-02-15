@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>DryClean Pro • Supabase</title>
     <style>
-        /* ... (your existing styles - unchanged) ... */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -142,28 +141,67 @@
             margin-bottom: 20px;
         }
         .order-form {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
             background: #f8f9fa;
             padding: 20px;
             border-radius: 20px;
             margin-bottom: 25px;
         }
-        .order-form input {
-            flex: 1 1 200px;
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .form-row input, .form-row select, .form-row button {
             padding: 12px 16px;
             border: 1px solid #ddd;
             border-radius: 12px;
             font-size: 1rem;
         }
-        .order-form button {
-            flex: 0 0 auto;
+        .form-row input {
+            flex: 2 1 200px;
+        }
+        .item-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .item-selector select, .item-selector input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .item-selector button {
             width: auto;
-            padding: 12px 24px;
+            padding: 8px 16px;
             background: #667eea;
             color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
             margin: 0;
+        }
+        .item-list {
+            margin: 10px 0;
+        }
+        .item-tag {
+            display: inline-block;
+            background: #e2e8f0;
+            padding: 5px 10px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 0.9rem;
+        }
+        .item-tag button {
+            background: none;
+            border: none;
+            margin-left: 5px;
+            color: #666;
+            cursor: pointer;
+            width: auto;
+            padding: 0 5px;
         }
         .search-box {
             margin-bottom: 20px;
@@ -245,12 +283,11 @@
         }
         @media (max-width: 600px) {
             .app-container { padding: 15px; }
-            .order-form { flex-direction: column; }
             .order-form input, .order-form button { width: 100%; }
         }
     </style>
-    <!-- Supabase client library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Load Supabase from unpkg (alternative CDN) -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <!-- Glassmorphism Login -->
@@ -284,14 +321,40 @@
 
         <h2>🧼 Order Manager</h2>
 
-        <!-- Add Order -->
+        <!-- Add Order with dynamic items -->
         <div class="order-form">
-            <input type="text" id="customerName" placeholder="Customer name">
-            <input type="text" id="items" placeholder="Items (e.g., 2 shirts)">
-            <input type="date" id="receivedDate">
-            <button id="addOrderBtn">➕ Add Order</button>
+            <div class="form-row">
+                <input type="text" id="customerName" placeholder="Customer name">
+                <input type="date" id="receivedDate">
+            </div>
+            
+            <!-- Item selector -->
+            <div class="item-selector">
+                <select id="itemSelect">
+                    <option value="Shirt">Shirt</option>
+                    <option value="Pant">Pant</option>
+                    <option value="Suit">Suit</option>
+                    <option value="Dress">Dress</option>
+                    <option value="Coat">Coat</option>
+                    <option value="Blouse">Blouse</option>
+                    <option value="Skirt">Skirt</option>
+                    <option value="Tie">Tie</option>
+                    <option value="Sweater">Sweater</option>
+                    <option value="Jacket">Jacket</option>
+                    <option value="Other">Other</option>
+                </select>
+                <input type="number" id="itemQuantity" min="1" value="1" style="width: 80px;">
+                <input type="text" id="otherItemText" placeholder="Specify item" style="display: none;">
+                <button id="addItemBtn">Add Item</button>
+            </div>
+            <div id="itemListContainer" class="item-list">
+                <!-- Selected items will appear as tags -->
+            </div>
+            <div class="form-row">
+                <button id="addOrderBtn">➕ Add Order</button>
+            </div>
+            <div id="formError" class="error"></div>
         </div>
-        <div id="formError" class="error" style="margin-bottom: 15px;"></div>
 
         <!-- Search -->
         <div class="search-box">
@@ -316,7 +379,7 @@
         </div>
     </div>
 
-    <!-- Edit Modal -->
+    <!-- Edit Modal (will need similar item selector) -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <h3>✏️ Edit Order</h3>
@@ -324,7 +387,7 @@
             <label>Customer Name</label>
             <input type="text" id="editCustomer">
             <label>Items</label>
-            <input type="text" id="editItems">
+            <input type="text" id="editItems" placeholder="e.g., 2 Shirts, 1 Pant">
             <label>Received Date</label>
             <input type="date" id="editDate">
             <label>Status</label>
@@ -345,13 +408,16 @@
         // ==================== CONFIGURATION ====================
         const SUPABASE_URL = 'https://lomlkrmqtxphizkvctir.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvbWxrcm1xdHhwaGl6a3ZjdGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNDU1MDEsImV4cCI6MjA4NjcyMTUwMX0.YFTO60Hbdcpl_3NIOBeTyE5oUVCGo18iec-BIZ0xLd8';
-        const SHARED_PASSWORD = '223215'; // Change to your password
+        const SHARED_PASSWORD = '223215';
 
-        // ==================== INIT SUPABASE (with safety check) ====================
-        // Prevent "already declared" error if script runs twice
+        // ==================== CHECK SUPABASE LOADED ====================
         if (typeof supabase === 'undefined') {
-            var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            alert('Supabase library failed to load. Please disable tracking protection or try a different browser.');
+            throw new Error('Supabase not loaded');
         }
+
+        // ==================== INIT SUPABASE ====================
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ==================== DEVICE ID & EMPLOYEE NAME ====================
         function getDeviceId() {
@@ -373,6 +439,7 @@
         let allOrders = [];
         let showHistory = false;
         let isAuthenticated = false;
+        let selectedItems = []; // array of {name, quantity}
 
         // DOM elements
         const loginDiv = document.getElementById('loginDiv');
@@ -387,7 +454,6 @@
         const employeeDisplay = document.getElementById('employeeDisplay');
         const addOrderBtn = document.getElementById('addOrderBtn');
         const customerName = document.getElementById('customerName');
-        const items = document.getElementById('items');
         const receivedDate = document.getElementById('receivedDate');
         const formError = document.getElementById('formError');
         const searchInput = document.getElementById('searchInput');
@@ -401,10 +467,69 @@
         const saveEditBtn = document.getElementById('saveEditBtn');
         const cancelEditBtn = document.getElementById('cancelEditBtn');
         const editError = document.getElementById('editError');
+        // Item selector elements
+        const itemSelect = document.getElementById('itemSelect');
+        const itemQuantity = document.getElementById('itemQuantity');
+        const otherItemText = document.getElementById('otherItemText');
+        const addItemBtn = document.getElementById('addItemBtn');
+        const itemListContainer = document.getElementById('itemListContainer');
 
         // Set today's date
         const today = new Date().toISOString().split('T')[0];
         receivedDate.value = today;
+
+        // Show/hide "Other" text field
+        itemSelect.addEventListener('change', () => {
+            if (itemSelect.value === 'Other') {
+                otherItemText.style.display = 'inline-block';
+            } else {
+                otherItemText.style.display = 'none';
+            }
+        });
+
+        // Add item to list
+        addItemBtn.addEventListener('click', () => {
+            let itemName = itemSelect.value;
+            if (itemName === 'Other') {
+                const custom = otherItemText.value.trim();
+                if (!custom) {
+                    alert('Please specify the item name');
+                    return;
+                }
+                itemName = custom;
+            }
+            const qty = parseInt(itemQuantity.value) || 1;
+            selectedItems.push({ name: itemName, quantity: qty });
+            renderItemTags();
+            // Clear other field if used
+            if (itemSelect.value === 'Other') {
+                otherItemText.value = '';
+                itemSelect.value = 'Shirt';
+                otherItemText.style.display = 'none';
+            }
+            itemQuantity.value = 1;
+        });
+
+        function renderItemTags() {
+            itemListContainer.innerHTML = '';
+            selectedItems.forEach((item, index) => {
+                const tag = document.createElement('span');
+                tag.className = 'item-tag';
+                tag.innerHTML = `${item.quantity} x ${item.name} <button onclick="removeItem(${index})">×</button>`;
+                itemListContainer.appendChild(tag);
+            });
+        }
+
+        // Remove item (global function for onclick)
+        window.removeItem = (index) => {
+            selectedItems.splice(index, 1);
+            renderItemTags();
+        };
+
+        // Generate items string for database
+        function getItemsString() {
+            return selectedItems.map(item => `${item.quantity} ${item.name}`).join(', ');
+        }
 
         // ==================== THEME ====================
         if (localStorage.getItem('theme')) {
@@ -469,7 +594,6 @@
             }
             loginError.textContent = '';
 
-            // Get or ask for employee name
             let empName = getEmployeeName();
             if (!empName || empName === 'Unknown') {
                 empName = prompt('Please enter your name:');
@@ -480,12 +604,8 @@
                 setEmployeeName(empName);
             }
 
-            // Save credentials if "Remember me" checked
             if (rememberMe.checked) {
-                const store = {
-                    password: SHARED_PASSWORD,
-                    employeeName: empName
-                };
+                const store = { password: SHARED_PASSWORD, employeeName: empName };
                 localStorage.setItem('dryclean_remember', btoa(JSON.stringify(store)));
             } else {
                 localStorage.removeItem('dryclean_remember');
@@ -494,24 +614,20 @@
             await doLogin(empName);
         });
 
-        // ==================== LOGOUT ====================
         logoutBtn.addEventListener('click', () => {
             isAuthenticated = false;
-            // Clear stored remember me
             localStorage.removeItem('dryclean_remember');
-            // Clear session but keep device ID
             loginDiv.style.display = 'flex';
             appDiv.style.display = 'none';
             passwordInput.value = '';
             loginError.textContent = '';
-            // Optionally clear orders
             allOrders = [];
             ordersBody.innerHTML = '';
         });
 
-        // ==================== FETCH ORDERS (with cache update) ====================
+        // ==================== FETCH ORDERS ====================
         async function fetchOrders() {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('orders')
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -520,17 +636,15 @@
                 return;
             }
             allOrders = data;
-            // Update cache
             localStorage.setItem('orders_cache', JSON.stringify(data));
             filterAndRenderOrders();
         }
 
-        // ==================== REAL-TIME SUBSCRIPTION ====================
         function subscribeToOrders() {
-            supabase
+            supabaseClient
                 .channel('orders-channel')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, payload => {
-                    fetchOrders(); // refresh and update cache
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+                    fetchOrders();
                 })
                 .subscribe();
         }
@@ -539,12 +653,13 @@
         addOrderBtn.addEventListener('click', async () => {
             if (!isAuthenticated) return;
             const name = customerName.value.trim();
-            const itemList = items.value.trim();
             const date = receivedDate.value;
-            if (!name || !itemList || !date) {
-                formError.textContent = 'All fields required';
+            if (!name || !date || selectedItems.length === 0) {
+                formError.textContent = 'Customer name, date, and at least one item required';
                 return;
             }
+
+            const itemsStr = getItemsString();
 
             // Generate order number
             const todayStr = date.replace(/-/g, '').slice(2);
@@ -555,12 +670,12 @@
             const deviceId = getDeviceId();
             const empName = getEmployeeName();
 
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('orders')
                 .insert([{
                     order_number: orderNumber,
                     customer_name: name,
-                    items: itemList,
+                    items: itemsStr,
                     received_date: date,
                     status: 'received',
                     created_by_device: deviceId,
@@ -573,10 +688,10 @@
                 formError.textContent = error.message;
             } else {
                 customerName.value = '';
-                items.value = '';
                 receivedDate.value = today;
+                selectedItems = [];
+                renderItemTags();
                 formError.textContent = '';
-                // Real-time will update
             }
         });
 
@@ -585,13 +700,9 @@
             if (!isAuthenticated) return;
             const deviceId = getDeviceId();
             const empName = getEmployeeName();
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('orders')
-                .update({
-                    status: newStatus,
-                    updated_by_device: deviceId,
-                    updated_by_name: empName
-                })
+                .update({ status: newStatus, updated_by_device: deviceId, updated_by_name: empName })
                 .eq('order_number', orderNumber);
             if (error) alert(error.message);
         }
@@ -606,9 +717,7 @@
             editModal.style.display = 'flex';
         }
 
-        cancelEditBtn.addEventListener('click', () => {
-            editModal.style.display = 'none';
-        });
+        cancelEditBtn.addEventListener('click', () => editModal.style.display = 'none');
 
         saveEditBtn.addEventListener('click', async () => {
             if (!isAuthenticated) return;
@@ -626,7 +735,7 @@
             const deviceId = getDeviceId();
             const empName = getEmployeeName();
 
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('orders')
                 .update({
                     customer_name: customer,
@@ -642,7 +751,6 @@
                 editError.textContent = error.message;
             } else {
                 editModal.style.display = 'none';
-                // Real-time will update
             }
         });
 
@@ -693,7 +801,6 @@
                 ordersBody.appendChild(tr);
             });
 
-            // Attach listeners
             document.querySelectorAll('.markReady').forEach(btn => {
                 btn.addEventListener('click', () => updateStatus(btn.dataset.order, 'ready'));
             });
