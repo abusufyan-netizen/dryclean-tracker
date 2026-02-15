@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>DryClean Pro • Supabase</title>
     <style>
+        /* ... (your existing styles - unchanged) ... */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -346,8 +347,11 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvbWxrcm1xdHhwaGl6a3ZjdGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNDU1MDEsImV4cCI6MjA4NjcyMTUwMX0.YFTO60Hbdcpl_3NIOBeTyE5oUVCGo18iec-BIZ0xLd8';
         const SHARED_PASSWORD = '223215'; // Change to your password
 
-        // ==================== INIT SUPABASE ====================
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // ==================== INIT SUPABASE (with safety check) ====================
+        // Prevent "already declared" error if script runs twice
+        if (typeof supabase === 'undefined') {
+            var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
 
         // ==================== DEVICE ID & EMPLOYEE NAME ====================
         function getDeviceId() {
