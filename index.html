@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>DryClean Pro • Supabase</title>
+    <title>DryClean Pro • Pickup & Dropoff</title>
     <style>
         * {
             box-sizing: border-box;
@@ -19,7 +19,6 @@
             justify-content: center;
             padding: 20px;
         }
-        /* Glassmorphism */
         .glass {
             background: rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(10px);
@@ -105,7 +104,6 @@
             padding: 8px;
             border-radius: 8px;
         }
-        /* Main app (hidden until login) */
         .app-container {
             width: 100%;
             max-width: 1400px;
@@ -123,7 +121,26 @@
             align-items: center;
             margin-bottom: 25px;
         }
-        .theme-btn, .history-btn, .logout-btn {
+        .view-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .view-btn {
+            padding: 10px 20px;
+            border-radius: 40px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            background: #f0f0f0;
+            color: #333;
+            transition: all 0.2s;
+        }
+        .view-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        .theme-btn, .logout-btn {
             padding: 10px 20px;
             border-radius: 40px;
             border: none;
@@ -252,7 +269,11 @@
         .edit-btn {
             background: #20bf6b;
         }
-        /* Modal */
+        .pickup-btn {
+            background: #26de81;
+            font-size: 1.1rem;
+            padding: 10px 20px;
+        }
         .modal {
             display: none;
             position: fixed;
@@ -286,11 +307,9 @@
             .order-form input, .order-form button { width: 100%; }
         }
     </style>
-    <!-- Load Supabase from unpkg (alternative CDN) -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <!-- Glassmorphism Login -->
     <div id="loginDiv" class="login-container glass">
         <h2>🧼 DryClean Pro</h2>
         <p>Employee access only</p>
@@ -306,29 +325,28 @@
         <div id="loginError" class="error"></div>
     </div>
 
-    <!-- Main App (hidden initially) -->
     <div id="appDiv" class="app-container" style="display: none;">
         <div class="toolbar">
-            <div>
-                <button id="themeToggle" class="theme-btn">🌙 Dark</button>
-                <button id="historyToggle" class="history-btn">📜 Show History</button>
+            <div class="view-buttons">
+                <button id="viewActiveBtn" class="view-btn active">📋 Active</button>
+                <button id="viewPickupBtn" class="view-btn">🚀 Pickup</button>
+                <button id="viewHistoryBtn" class="view-btn">📜 History</button>
             </div>
             <div>
                 <span id="employeeDisplay" style="margin-right: 15px;"></span>
+                <button id="themeToggle" class="theme-btn">🌙 Dark</button>
                 <button id="logoutBtn" class="logout-btn">🚪 Logout</button>
             </div>
         </div>
 
         <h2>🧼 Order Manager</h2>
 
-        <!-- Add Order with dynamic items -->
+        <!-- Dropoff Section (always visible) -->
         <div class="order-form">
             <div class="form-row">
                 <input type="text" id="customerName" placeholder="Customer name">
                 <input type="date" id="receivedDate">
             </div>
-            
-            <!-- Item selector -->
             <div class="item-selector">
                 <select id="itemSelect">
                     <option value="Shirt">Shirt</option>
@@ -347,18 +365,16 @@
                 <input type="text" id="otherItemText" placeholder="Specify item" style="display: none;">
                 <button id="addItemBtn">Add Item</button>
             </div>
-            <div id="itemListContainer" class="item-list">
-                <!-- Selected items will appear as tags -->
-            </div>
+            <div id="itemListContainer" class="item-list"></div>
             <div class="form-row">
-                <button id="addOrderBtn">➕ Add Order</button>
+                <button id="addOrderBtn">➕ Add Order (Dropoff)</button>
             </div>
             <div id="formError" class="error"></div>
         </div>
 
         <!-- Search -->
         <div class="search-box">
-            <input type="text" id="searchInput" placeholder="🔍 Search by order # or customer...">
+            <input type="text" id="searchInput" placeholder="🔍 Search by order # or customer... (press Enter)">
         </div>
 
         <!-- Orders Table -->
@@ -379,7 +395,7 @@
         </div>
     </div>
 
-    <!-- Edit Modal (will need similar item selector) -->
+    <!-- Edit Modal (same) -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <h3>✏️ Edit Order</h3>
@@ -392,9 +408,9 @@
             <input type="date" id="editDate">
             <label>Status</label>
             <select id="editStatus">
-                <option value="received">Received</option>
+                <option value="received">Picked</option>
                 <option value="ready">Ready</option>
-                <option value="picked">Picked Up</option>
+                <option value="picked">Gone</option>
             </select>
             <div class="modal-buttons">
                 <button id="saveEditBtn">💾 Save</button>
@@ -405,21 +421,18 @@
     </div>
 
     <script>
-        // ==================== CONFIGURATION ====================
+        // ==================== CONFIG ====================
         const SUPABASE_URL = 'https://lomlkrmqtxphizkvctir.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvbWxrcm1xdHhwaGl6a3ZjdGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNDU1MDEsImV4cCI6MjA4NjcyMTUwMX0.YFTO60Hbdcpl_3NIOBeTyE5oUVCGo18iec-BIZ0xLd8';
         const SHARED_PASSWORD = '223215';
 
-        // ==================== CHECK SUPABASE LOADED ====================
         if (typeof supabase === 'undefined') {
             alert('Supabase library failed to load. Please disable tracking protection or try a different browser.');
             throw new Error('Supabase not loaded');
         }
-
-        // ==================== INIT SUPABASE ====================
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // ==================== DEVICE ID & EMPLOYEE NAME ====================
+        // ==================== HELPERS ====================
         function getDeviceId() {
             let deviceId = localStorage.getItem('deviceId');
             if (!deviceId) {
@@ -437,9 +450,9 @@
 
         // ==================== STATE ====================
         let allOrders = [];
-        let showHistory = false;
+        let currentView = 'active'; // 'active', 'pickup', 'history'
         let isAuthenticated = false;
-        let selectedItems = []; // array of {name, quantity}
+        let selectedItems = [];
 
         // DOM elements
         const loginDiv = document.getElementById('loginDiv');
@@ -450,7 +463,9 @@
         const rememberMe = document.getElementById('rememberMe');
         const logoutBtn = document.getElementById('logoutBtn');
         const themeToggle = document.getElementById('themeToggle');
-        const historyToggle = document.getElementById('historyToggle');
+        const viewActiveBtn = document.getElementById('viewActiveBtn');
+        const viewPickupBtn = document.getElementById('viewPickupBtn');
+        const viewHistoryBtn = document.getElementById('viewHistoryBtn');
         const employeeDisplay = document.getElementById('employeeDisplay');
         const addOrderBtn = document.getElementById('addOrderBtn');
         const customerName = document.getElementById('customerName');
@@ -467,41 +482,30 @@
         const saveEditBtn = document.getElementById('saveEditBtn');
         const cancelEditBtn = document.getElementById('cancelEditBtn');
         const editError = document.getElementById('editError');
-        // Item selector elements
         const itemSelect = document.getElementById('itemSelect');
         const itemQuantity = document.getElementById('itemQuantity');
         const otherItemText = document.getElementById('otherItemText');
         const addItemBtn = document.getElementById('addItemBtn');
         const itemListContainer = document.getElementById('itemListContainer');
 
-        // Set today's date
         const today = new Date().toISOString().split('T')[0];
         receivedDate.value = today;
 
-        // Show/hide "Other" text field
+        // Item selector logic
         itemSelect.addEventListener('change', () => {
-            if (itemSelect.value === 'Other') {
-                otherItemText.style.display = 'inline-block';
-            } else {
-                otherItemText.style.display = 'none';
-            }
+            otherItemText.style.display = itemSelect.value === 'Other' ? 'inline-block' : 'none';
         });
 
-        // Add item to list
         addItemBtn.addEventListener('click', () => {
             let itemName = itemSelect.value;
             if (itemName === 'Other') {
                 const custom = otherItemText.value.trim();
-                if (!custom) {
-                    alert('Please specify the item name');
-                    return;
-                }
+                if (!custom) { alert('Please specify the item name'); return; }
                 itemName = custom;
             }
             const qty = parseInt(itemQuantity.value) || 1;
             selectedItems.push({ name: itemName, quantity: qty });
             renderItemTags();
-            // Clear other field if used
             if (itemSelect.value === 'Other') {
                 otherItemText.value = '';
                 itemSelect.value = 'Shirt';
@@ -519,14 +523,11 @@
                 itemListContainer.appendChild(tag);
             });
         }
-
-        // Remove item (global function for onclick)
         window.removeItem = (index) => {
             selectedItems.splice(index, 1);
             renderItemTags();
         };
 
-        // Generate items string for database
         function getItemsString() {
             return selectedItems.map(item => `${item.quantity} ${item.name}`).join(', ');
         }
@@ -544,7 +545,23 @@
             themeToggle.textContent = newTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
         });
 
-        // ==================== AUTO-LOGIN CHECK ====================
+        // ==================== VIEW SWITCHING ====================
+        function setView(view) {
+            currentView = view;
+            viewActiveBtn.classList.remove('active');
+            viewPickupBtn.classList.remove('active');
+            viewHistoryBtn.classList.remove('active');
+            if (view === 'active') viewActiveBtn.classList.add('active');
+            else if (view === 'pickup') viewPickupBtn.classList.add('active');
+            else if (view === 'history') viewHistoryBtn.classList.add('active');
+            filterAndRenderOrders();
+        }
+
+        viewActiveBtn.addEventListener('click', () => setView('active'));
+        viewPickupBtn.addEventListener('click', () => setView('pickup'));
+        viewHistoryBtn.addEventListener('click', () => setView('history'));
+
+        // ==================== LOGIN ====================
         (async function autoLogin() {
             const stored = localStorage.getItem('dryclean_remember');
             if (stored) {
@@ -562,14 +579,12 @@
             }
         })();
 
-        // ==================== LOGIN FUNCTION ====================
         async function doLogin(empName) {
             isAuthenticated = true;
             employeeDisplay.textContent = `👤 ${empName}`;
             loginDiv.style.display = 'none';
             appDiv.style.display = 'block';
 
-            // Load cached orders first
             const cached = localStorage.getItem('orders_cache');
             if (cached) {
                 try {
@@ -577,14 +592,16 @@
                     filterAndRenderOrders();
                 } catch (e) {}
             }
-
-            // Fetch fresh orders
             fetchOrders();
             subscribeToOrders();
         }
 
-        // ==================== LOGIN BUTTON ====================
-        loginBtn.addEventListener('click', async () => {
+        loginBtn.addEventListener('click', loginHandler);
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') loginHandler();
+        });
+
+        async function loginHandler() {
             const pwd = passwordInput.value.trim();
             if (pwd !== SHARED_PASSWORD) {
                 loginError.textContent = '❌ Incorrect password. Please try again.';
@@ -612,7 +629,7 @@
             }
 
             await doLogin(empName);
-        });
+        }
 
         logoutBtn.addEventListener('click', () => {
             isAuthenticated = false;
@@ -625,7 +642,7 @@
             ordersBody.innerHTML = '';
         });
 
-        // ==================== FETCH ORDERS ====================
+        // ==================== DATA ====================
         async function fetchOrders() {
             const { data, error } = await supabaseClient
                 .from('orders')
@@ -650,7 +667,9 @@
         }
 
         // ==================== ADD ORDER ====================
-        addOrderBtn.addEventListener('click', async () => {
+        addOrderBtn.addEventListener('click', addOrderHandler);
+
+        async function addOrderHandler() {
             if (!isAuthenticated) return;
             const name = customerName.value.trim();
             const date = receivedDate.value;
@@ -661,7 +680,6 @@
 
             const itemsStr = getItemsString();
 
-            // Generate order number
             const todayStr = date.replace(/-/g, '').slice(2);
             const todaysOrders = allOrders.filter(o => o.order_number && o.order_number.startsWith(todayStr));
             const count = todaysOrders.length;
@@ -693,7 +711,7 @@
                 renderItemTags();
                 formError.textContent = '';
             }
-        });
+        }
 
         // ==================== UPDATE STATUS ====================
         async function updateStatus(orderNumber, newStatus) {
@@ -759,12 +777,10 @@
         });
 
         // ==================== FILTER & RENDER ====================
-        searchInput.addEventListener('input', filterAndRenderOrders);
-        historyToggle.addEventListener('click', () => {
-            showHistory = !showHistory;
-            historyToggle.textContent = showHistory ? '📋 Show Active' : '📜 Show History';
-            filterAndRenderOrders();
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') filterAndRenderOrders();
         });
+        searchInput.addEventListener('input', filterAndRenderOrders);
 
         function filterAndRenderOrders() {
             const term = searchInput.value.toLowerCase();
@@ -772,29 +788,44 @@
                 (order.order_number && order.order_number.toLowerCase().includes(term)) ||
                 (order.customer_name && order.customer_name.toLowerCase().includes(term))
             );
-            if (showHistory) {
-                filtered = filtered.filter(order => order.status === 'picked');
-            } else {
+
+            // Apply view filter
+            if (currentView === 'active') {
                 filtered = filtered.filter(order => order.status !== 'picked');
+            } else if (currentView === 'pickup') {
+                filtered = filtered.filter(order => order.status === 'ready');
+            } else if (currentView === 'history') {
+                filtered = filtered.filter(order => order.status === 'picked');
             }
+
             renderOrders(filtered);
         }
 
         function renderOrders(orders) {
             ordersBody.innerHTML = '';
             orders.forEach(order => {
+                let statusDisplay = order.status;
+                if (order.status === 'received') statusDisplay = 'Picked';
+                else if (order.status === 'ready') statusDisplay = 'Ready';
+                else if (order.status === 'picked') statusDisplay = 'Gone';
+
                 const tr = document.createElement('tr');
+                // In pickup view, maybe show a bigger button
+                const isPickupView = currentView === 'pickup';
+
                 tr.innerHTML = `
                     <td>${order.order_number || ''}</td>
                     <td>${order.customer_name || ''}</td>
                     <td>${order.items || ''}</td>
                     <td>${order.received_date || ''}</td>
-                    <td class="status-${order.status || ''}">${order.status || ''}</td>
+                    <td class="status-${order.status || ''}">${statusDisplay}</td>
                     <td>
                         <div class="action-btns">
                             ${order.status === 'received' ? '<button class="markReady" data-order="'+order.order_number+'">✅ Ready</button>' : ''}
-                            ${order.status === 'ready' ? '<button class="markPicked" data-order="'+order.order_number+'">📦 Picked</button>' : ''}
-                            <button class="edit-btn" data-order='${JSON.stringify(order)}'>✏️ Edit</button>
+                            ${order.status === 'ready' ? (isPickupView ? 
+                                '<button class="pickup-btn markPicked" data-order="'+order.order_number+'">📦 Picked Up</button>' : 
+                                '<button class="markPicked" data-order="'+order.order_number+'">📦 Gone</button>') : ''}
+                            ${order.status !== 'picked' ? '<button class="edit-btn" data-order=\''+JSON.stringify(order)+'\'>✏️ Edit</button>' : ''}
                         </div>
                     </td>
                 `;
