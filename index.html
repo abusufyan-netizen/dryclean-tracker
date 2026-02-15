@@ -2,94 +2,357 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DryClean Tracker (Sheets)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>DryClean Pro</title>
     <style>
-        * { box-sizing: border-box; font-family: Arial, sans-serif; }
-        body { background: #f5f5f5; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .login-box, .app { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h2 { margin-top: 0; }
-        input, button, select { padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
-        button { background: #4CAF50; color: white; border: none; cursor: pointer; }
-        button:hover { background: #45a049; }
-        .error { color: red; }
-        .order-form { background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-        .order-form input { width: calc(33% - 10px); margin-right: 5px; }
-        table { width: 100%; border-collapse: collapse; background: white; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background: #f2f2f2; }
-        .status-received { color: orange; font-weight: bold; }
-        .status-ready { color: green; font-weight: bold; }
-        .status-picked { color: gray; }
-        .search-box { margin-bottom: 15px; }
-        .search-box input { width: 100%; padding: 10px; }
-        .logout { float: right; background: #f44336; }
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        :root {
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #212529;
+            --text-light: #6c757d;
+            --border: #dee2e6;
+            --primary: #0d6efd;
+            --primary-hover: #0b5ed7;
+            --danger: #dc3545;
+            --success: #198754;
+            --warning: #ffc107;
+            --header-bg: #e9ecef;
+            --input-bg: #ffffff;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        [data-theme="dark"] {
+            --bg: #1e1e1e;
+            --card-bg: #2d2d2d;
+            --text: #e9ecef;
+            --text-light: #adb5bd;
+            --border: #495057;
+            --primary: #375a7f;
+            --primary-hover: #4b6f8f;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --header-bg: #3d3d3d;
+            --input-bg: #3d3d3d;
+            --shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            padding: 15px;
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .login-box, .app {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+        h3 {
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+        input, button, select, textarea {
+            padding: 12px 16px;
+            margin: 8px 0;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 1rem;
+            background: var(--input-bg);
+            color: var(--text);
+            outline: none;
+            transition: border 0.2s;
+        }
+        input:focus {
+            border-color: var(--primary);
+        }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            background: var(--primary-hover);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .secondary-btn {
+            background: var(--text-light);
+            color: white;
+        }
+        .secondary-btn:hover {
+            background: #5a6268;
+        }
+        .danger-btn {
+            background: var(--danger);
+        }
+        .danger-btn:hover {
+            background: #b02a37;
+        }
+        .error {
+            color: var(--danger);
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        .order-form {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .order-form input {
+            flex: 1 1 200px;
+            margin: 0;
+        }
+        .order-form button {
+            flex: 0 0 auto;
+            min-width: 120px;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .toolbar-left {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .toolbar-right {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .search-box {
+            flex: 1 1 300px;
+        }
+        .search-box input {
+            width: 100%;
+            margin: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        th, td {
+            padding: 14px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: var(--header-bg);
+            font-weight: 600;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .status-received {
+            color: var(--warning);
+            font-weight: bold;
+        }
+        .status-ready {
+            color: var(--success);
+            font-weight: bold;
+        }
+        .status-picked {
+            color: var(--text-light);
+        }
+        .action-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .action-btns button {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        .edit-btn {
+            background: var(--primary);
+        }
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--shadow);
+        }
+        .modal-content h3 {
+            margin-top: 0;
+        }
+        .modal-content input, .modal-content select {
+            width: 100%;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        @media (max-width: 600px) {
+            .order-form {
+                flex-direction: column;
+            }
+            .order-form input, .order-form button {
+                width: 100%;
+            }
+            th, td {
+                padding: 10px 6px;
+                font-size: 0.85rem;
+            }
+            .action-btns button {
+                padding: 6px 8px;
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container" id="appContainer">
-        <!-- Login form -->
+        <!-- Login -->
         <div id="loginDiv" class="login-box">
-            <h2>Employee Login</h2>
-            <input type="password" id="passwordInput" placeholder="Password" /><br>
+            <h2>🔐 Employee Login</h2>
+            <input type="password" id="passwordInput" placeholder="Enter password" />
             <button id="loginBtn">Login</button>
             <div id="loginError" class="error"></div>
         </div>
 
-        <!-- Main app (hidden until login) -->
+        <!-- Main App -->
         <div id="appDiv" class="app" style="display: none;">
-            <button id="logoutBtn" class="logout">Logout</button>
-            <h2>DryClean Order Tracker</h2>
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button id="themeToggle" class="secondary-btn">🌙 Dark</button>
+                    <button id="historyToggle" class="secondary-btn">📜 Show History</button>
+                </div>
+                <div class="toolbar-right">
+                    <button id="logoutBtn" class="danger-btn">🚪 Logout</button>
+                </div>
+            </div>
 
-            <!-- Add new order form -->
+            <h2>🧼 DryClean Order Manager</h2>
+
+            <!-- Add Order Form -->
             <div class="order-form">
-                <h3>New Order</h3>
-                <input type="text" id="customerName" placeholder="Customer Name" />
+                <input type="text" id="customerName" placeholder="Customer name" />
                 <input type="text" id="items" placeholder="Items (e.g., 2 shirts, 1 coat)" />
                 <input type="date" id="receivedDate" />
-                <button id="addOrderBtn">Add Order</button>
+                <button id="addOrderBtn">➕ Add Order</button>
                 <span id="formError" class="error"></span>
             </div>
 
             <!-- Search -->
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Search by order # or customer name..." />
+                <input type="text" id="searchInput" placeholder="🔍 Search by order # or customer..." />
             </div>
 
-            <!-- Orders table -->
-            <table id="ordersTable">
-                <thead>
-                    <tr>
-                        <th>Order #</th>
-                        <th>Customer</th>
-                        <th>Items</th>
-                        <th>Received</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="ordersBody">
-                    <!-- populated by JavaScript -->
-                </tbody>
-            </table>
+            <!-- Orders Table -->
+            <div style="overflow-x: auto;">
+                <table id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Received</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersBody">
+                        <!-- populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3>✏️ Edit Order</h3>
+            <input type="hidden" id="editOrderNumber" />
+            <label>Customer Name</label>
+            <input type="text" id="editCustomer" placeholder="Customer name" />
+            <label>Items</label>
+            <input type="text" id="editItems" placeholder="Items" />
+            <label>Received Date</label>
+            <input type="date" id="editDate" />
+            <label>Status</label>
+            <select id="editStatus">
+                <option value="received">Received</option>
+                <option value="ready">Ready</option>
+                <option value="picked">Picked Up</option>
+            </select>
+            <div class="modal-buttons">
+                <button id="saveEditBtn" class="primary-btn">💾 Save</button>
+                <button id="cancelEditBtn" class="secondary-btn">Cancel</button>
+            </div>
+            <div id="editError" class="error"></div>
         </div>
     </div>
 
     <script>
-        // CONFIGURATION – REPLACE WITH YOUR APPS SCRIPT URL
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxj0C7LyWVH_-hur4yf3hOB8jhHCJeZyehHXTINexQzCGN1RVAYUGAIVlhxPPSa7X2d8w/exec'; // e.g., https://script.google.com/macros/s/.../exec
+        // CONFIGURATION
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwcW0hDyObkeHsfi_Q4WeoO0Njw6DK1ktG_CCx6rI17wHR8PXBndm6NhsuSIskqJoSlwA/exec'; // Replace with your deployed URL
 
-        let currentPassword = ''; // stored after login
+        // State
+        let currentPassword = '';
         let allOrders = [];
+        let showHistory = false; // false = active (received/ready), true = picked
 
-        // DOM elements
+        // DOM
         const loginDiv = document.getElementById('loginDiv');
         const appDiv = document.getElementById('appDiv');
         const passwordInput = document.getElementById('passwordInput');
         const loginBtn = document.getElementById('loginBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
         const loginError = document.getElementById('loginError');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const themeToggle = document.getElementById('themeToggle');
+        const historyToggle = document.getElementById('historyToggle');
         const addOrderBtn = document.getElementById('addOrderBtn');
         const customerName = document.getElementById('customerName');
         const items = document.getElementById('items');
@@ -98,18 +361,48 @@
         const searchInput = document.getElementById('searchInput');
         const ordersBody = document.getElementById('ordersBody');
 
-        // Set today's date as default in the date picker
+        // Modal elements
+        const editModal = document.getElementById('editModal');
+        const editOrderNumber = document.getElementById('editOrderNumber');
+        const editCustomer = document.getElementById('editCustomer');
+        const editItems = document.getElementById('editItems');
+        const editDate = document.getElementById('editDate');
+        const editStatus = document.getElementById('editStatus');
+        const saveEditBtn = document.getElementById('saveEditBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const editError = document.getElementById('editError');
+
+        // Set today as default date
         const today = new Date().toISOString().split('T')[0];
         receivedDate.value = today;
+
+        // Theme
+        if (localStorage.getItem('theme')) {
+            document.documentElement.setAttribute('data-theme', localStorage.getItem('theme'));
+            themeToggle.textContent = localStorage.getItem('theme') === 'dark' ? '☀️ Light' : '🌙 Dark';
+        }
+        themeToggle.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            themeToggle.textContent = newTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
+        });
+
+        // History toggle
+        historyToggle.addEventListener('click', () => {
+            showHistory = !showHistory;
+            historyToggle.textContent = showHistory ? '📋 Show Active' : '📜 Show History';
+            filterAndRenderOrders();
+        });
 
         // Login
         loginBtn.addEventListener('click', async () => {
             const pwd = passwordInput.value.trim();
             if (!pwd) {
-                loginError.textContent = 'Enter password';
+                loginError.textContent = 'Please enter password';
                 return;
             }
-            // Test the password by trying to fetch orders
             try {
                 const response = await fetch(`${APPS_SCRIPT_URL}?action=getOrders&password=${encodeURIComponent(pwd)}`);
                 const data = await response.json();
@@ -117,10 +410,10 @@
                     loginError.textContent = 'Invalid password';
                 } else {
                     currentPassword = pwd;
+                    allOrders = data;
                     loginDiv.style.display = 'none';
                     appDiv.style.display = 'block';
-                    allOrders = data; // initial load
-                    renderOrders(allOrders);
+                    filterAndRenderOrders();
                 }
             } catch (err) {
                 loginError.textContent = 'Network error – check URL';
@@ -136,17 +429,15 @@
             loginError.textContent = '';
         });
 
-        // Add new order
+        // Add order
         addOrderBtn.addEventListener('click', async () => {
             const name = customerName.value.trim();
             const itemList = items.value.trim();
             const date = receivedDate.value;
-
             if (!name || !itemList || !date) {
-                formError.textContent = 'Please fill all fields';
+                formError.textContent = 'All fields required';
                 return;
             }
-
             const params = new URLSearchParams({
                 action: 'addOrder',
                 password: currentPassword,
@@ -154,22 +445,16 @@
                 items: itemList,
                 receivedDate: date
             });
-
             try {
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: params
-                });
+                const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: params });
                 const result = await response.json();
                 if (result.error) {
                     formError.textContent = result.error;
                 } else {
-                    // Clear form
                     customerName.value = '';
                     items.value = '';
                     receivedDate.value = today;
                     formError.textContent = '';
-                    // Refresh orders
                     fetchOrders();
                 }
             } catch (err) {
@@ -177,7 +462,7 @@
             }
         });
 
-        // Fetch all orders (used after add/update)
+        // Fetch orders (refresh)
         async function fetchOrders() {
             try {
                 const response = await fetch(`${APPS_SCRIPT_URL}?action=getOrders&password=${encodeURIComponent(currentPassword)}`);
@@ -191,15 +476,20 @@
             }
         }
 
-        // Search filter
+        // Search + history filter
         searchInput.addEventListener('input', filterAndRenderOrders);
 
         function filterAndRenderOrders() {
-            const searchTerm = searchInput.value.toLowerCase();
-            const filtered = allOrders.filter(order => 
-                (order.orderNumber && order.orderNumber.toLowerCase().includes(searchTerm)) ||
-                (order.customerName && order.customerName.toLowerCase().includes(searchTerm))
+            const term = searchInput.value.toLowerCase();
+            let filtered = allOrders.filter(order =>
+                (order.orderNumber && order.orderNumber.toLowerCase().includes(term)) ||
+                (order.customerName && order.customerName.toLowerCase().includes(term))
             );
+            if (showHistory) {
+                filtered = filtered.filter(order => order.status === 'picked');
+            } else {
+                filtered = filtered.filter(order => order.status !== 'picked');
+            }
             renderOrders(filtered);
         }
 
@@ -214,29 +504,32 @@
                     <td>${order.receivedDate || ''}</td>
                     <td class="status-${order.status || ''}">${order.status || ''}</td>
                     <td>
-                        ${order.status === 'received' ? '<button class="markReady" data-order="'+order.orderNumber+'">Mark Ready</button>' : ''}
-                        ${order.status === 'ready' ? '<button class="markPicked" data-order="'+order.orderNumber+'">Mark Picked Up</button>' : ''}
-                        ${order.status === 'picked' ? '✅ Done' : ''}
+                        <div class="action-btns">
+                            ${order.status === 'received' ? '<button class="markReady" data-order="'+order.orderNumber+'">✅ Ready</button>' : ''}
+                            ${order.status === 'ready' ? '<button class="markPicked" data-order="'+order.orderNumber+'">📦 Picked</button>' : ''}
+                            <button class="edit-btn" data-order='${JSON.stringify(order)}'>✏️ Edit</button>
+                        </div>
                     </td>
                 `;
                 ordersBody.appendChild(tr);
             });
 
-            // Attach event listeners to buttons
+            // Attach event listeners
             document.querySelectorAll('.markReady').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const orderNum = e.target.dataset.order;
-                    await updateStatus(orderNum, 'ready');
-                });
+                btn.addEventListener('click', () => updateStatus(btn.dataset.order, 'ready'));
             });
             document.querySelectorAll('.markPicked').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const orderNum = e.target.dataset.order;
-                    await updateStatus(orderNum, 'picked');
+                btn.addEventListener('click', () => updateStatus(btn.dataset.order, 'picked'));
+            });
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const order = JSON.parse(e.target.dataset.order);
+                    openEditModal(order);
                 });
             });
         }
 
+        // Update status (ready/picked)
         async function updateStatus(orderNumber, newStatus) {
             const params = new URLSearchParams({
                 action: 'updateStatus',
@@ -244,22 +537,71 @@
                 orderNumber: orderNumber,
                 status: newStatus
             });
-
             try {
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: params
-                });
+                const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: params });
                 const result = await response.json();
-                if (result.error) {
-                    alert('Error: ' + result.error);
-                } else {
-                    fetchOrders(); // refresh
-                }
+                if (!result.error) fetchOrders();
+                else alert('Error: ' + result.error);
             } catch (err) {
                 alert('Network error');
             }
         }
+
+        // Edit modal
+        function openEditModal(order) {
+            editOrderNumber.value = order.orderNumber;
+            editCustomer.value = order.customerName || '';
+            editItems.value = order.items || '';
+            editDate.value = order.receivedDate || '';
+            editStatus.value = order.status || 'received';
+            editError.textContent = '';
+            editModal.style.display = 'flex';
+        }
+
+        cancelEditBtn.addEventListener('click', () => {
+            editModal.style.display = 'none';
+        });
+
+        saveEditBtn.addEventListener('click', async () => {
+            const orderNumber = editOrderNumber.value;
+            const customer = editCustomer.value.trim();
+            const itemsVal = editItems.value.trim();
+            const date = editDate.value;
+            const status = editStatus.value;
+
+            if (!customer || !itemsVal || !date) {
+                editError.textContent = 'All fields required';
+                return;
+            }
+
+            const params = new URLSearchParams({
+                action: 'updateOrder',
+                password: currentPassword,
+                orderNumber: orderNumber,
+                customerName: customer,
+                items: itemsVal,
+                receivedDate: date,
+                status: status
+            });
+
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: params });
+                const result = await response.json();
+                if (result.error) {
+                    editError.textContent = result.error;
+                } else {
+                    editModal.style.display = 'none';
+                    fetchOrders();
+                }
+            } catch (err) {
+                editError.textContent = 'Network error';
+            }
+        });
+
+        // Close modal if clicked outside
+        window.addEventListener('click', (e) => {
+            if (e.target === editModal) editModal.style.display = 'none';
+        });
     </script>
 </body>
 </html>
